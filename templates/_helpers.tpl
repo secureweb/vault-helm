@@ -95,6 +95,8 @@ extra volumes the user may have specified (such as a secret with TLS).
             name: {{ .name }}
           {{- else if (eq .type "secret") }}
             secretName: {{ .name }}
+          {{- else if (eq .type "emptyDir") }}
+            emptyDir: {}
           {{- end }}
   {{- end }}
 {{- end -}}

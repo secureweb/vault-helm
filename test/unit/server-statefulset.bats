@@ -244,6 +244,10 @@ load _helpers
       yq -r '.configMap.secretName' | tee /dev/stderr)
   [ "${actual}" = "null" ]
 
+    local actual=$(echo $object |
+      yq -r '.configMap.emptyDir' | tee /dev/stderr)
+  [ "${actual}" = "null" ]
+
   local object=$(helm template \
       --show-only templates/server-statefulset.yaml  \
       --set 'server.standalone.enabled=true' \
@@ -312,6 +316,10 @@ load _helpers
       yq -r '.secret.secretName' | tee /dev/stderr)
   [ "${actual}" = "foo" ]
 
+  local actual=$(echo $object |
+      yq -r '.secret.emptyDir' | tee /dev/stderr)
+  [ "${actual}" = "null" ]
+
   local object=$(helm template \
       --show-only templates/server-statefulset.yaml  \
       --set 'server.standalone.enabled=true' \
@@ -331,7 +339,7 @@ load _helpers
   # Test that it mounts it
   local object=$(helm template \
       --show-only templates/server-statefulset.yaml  \
-      --set 'server.extraVolumes[0].type=configMap' \
+      --set 'server.extraVolumes[0].type=secret' \
       --set 'server.extraVolumes[0].name=foo' \
       . | tee /dev/stderr |
       yq -r '.spec.template.spec.containers[0].volumeMounts[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
@@ -347,7 +355,76 @@ load _helpers
   local object=$(helm template \
       --show-only templates/server-statefulset.yaml  \
       --set 'server.standalone.enabled=true' \
-      --set 'server.extraVolumes[0].type=configMap' \
+      --set 'server.extraVolumes[0].type=secret' \
+      --set 'server.extraVolumes[0].name=foo' \
+      . | tee /dev/stderr |
+      yq -r '.spec.template.spec.containers[0].volumeMounts[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
+
+  local actual=$(echo $object |
+      yq -r '.readOnly' | tee /dev/stderr)
+  [ "${actual}" = "true" ]
+
+  local actual=$(echo $object |
+      yq -r '.mountPath' | tee /dev/stderr)
+  [ "${actual}" = "/vault/userconfig/foo" ]
+}
+
+
+@test "server/standalone-StatefulSet: adds extra emptyDir volume" {
+  cd `chart_dir`
+
+  # Test that it defines it
+  local object=$(helm template \
+      --show-only templates/server-statefulset.yaml  \
+      --set 'server.extraVolumes[0].type=emptyDir' \
+      --set 'server.extraVolumes[0].name=foo' \
+      . | tee /dev/stderr |
+      yq -r '.spec.template.spec.volumes[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
+
+  local actual=$(echo $object |
+      yq -r '.emptyDir.name' | tee /dev/stderr)
+  [ "${actual}" = "foo" ]
+
+  local actual=$(echo $object |
+      yq -r '.emptyDir.secretName' | tee /dev/stderr)
+  [ "${actual}" = "null" ]
+
+  local object=$(helm template \
+      --show-only templates/server-statefulset.yaml  \
+      --set 'server.standalone.enabled=true' \
+      --set 'server.extraVolumes[0].type=emptyDir' \
+      --set 'server.extraVolumes[0].name=foo' \
+      . | tee /dev/stderr |
+      yq -r '.spec.template.spec.volumes[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
+
+  local actual=$(echo $object |
+      yq -r '.emptyDir.name' | tee /dev/stderr)
+  [ "${actual}" = "foo" ]
+
+  local actual=$(echo $object |
+      yq -r '.emptyDir.secretName' | tee /dev/stderr)
+  [ "${actual}" = "null" ]
+
+  # Test that it mounts it
+  local object=$(helm template \
+      --show-only templates/server-statefulset.yaml  \
+      --set 'server.extraVolumes[0].type=emptyDir' \
+      --set 'server.extraVolumes[0].name=foo' \
+      . | tee /dev/stderr |
+      yq -r '.spec.template.spec.containers[0].volumeMounts[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
+
+  local actual=$(echo $object |
+      yq -r '.readOnly' | tee /dev/stderr)
+  [ "${actual}" = "true" ]
+
+  local actual=$(echo $object |
+      yq -r '.mountPath' | tee /dev/stderr)
+  [ "${actual}" = "/vault/userconfig/foo" ]
+
+  local object=$(helm template \
+      --show-only templates/server-statefulset.yaml  \
+      --set 'server.standalone.enabled=true' \
+      --set 'server.extraVolumes[0].type=emptyDir' \
       --set 'server.extraVolumes[0].name=foo' \
       . | tee /dev/stderr |
       yq -r '.spec.template.spec.containers[0].volumeMounts[] | select(.name == "userconfig-foo")' | tee /dev/stderr)
